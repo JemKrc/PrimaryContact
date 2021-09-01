@@ -1,0 +1,67 @@
+<apex:page standardController="Account" extensions="extentionController">
+   
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Primary Contact</title>
+      <!-- Import the Design System style sheet -->
+      <apex:slds />
+   </head>
+    <body>
+
+     <apex:form >
+      <apex:pageBlock title="Account Primary Contact">
+        <!--Buttons -->
+         <apex:pageBlockButtons >
+            <apex:commandButton action="{!save}" value="Save"/>
+            <apex:commandButton action="{!cancel}" value="Cancel"/>
+         </apex:pageBlockButtons>
+         <!--Input form -->
+         <apex:pageBlockSection columns="2">
+         <apex:inputField value="{!Account.Name}"/>
+         <apex:inputField value="{!Account.Type}"/>
+         <apex:inputField value="{!Account.Phone}"/>
+         <apex:inputField value="{!Account.AccountNumber}"/>
+         <apex:inputField value="{!Account.Active__c}"/>
+         <apex:inputField value="{!Account.Fax}"/>
+          </apex:pageBlockSection>
+      </apex:pageBlock>
+         <!--Search Block -->
+         <apex:pageBlock title="Search related contacts">
+             <apex:inputText value="{!SearchText}"/>
+             <apex:commandButton value="Search" action="{!search}"/>
+         </apex:pageBlock>
+ 
+     <!--Related Contacts Block displaying 2000+ records -->
+	<apex:pageBlock title="Related Contact Records" id="tableValue">
+      <apex:pageBlockTable value="{!ContactMap}" var="contId">
+		<apex:column headerValue="Last Name">
+         <apex:outputText value="{!ContactMap[contId].LastName}"/>
+          </apex:column>
+          <apex:column headerValue="Title">
+         <apex:outputText value="{!ContactMap[contId].Title}"/>
+            </apex:column>
+          <apex:column headerValue="Phone">
+         <apex:outputText value="{!ContactMap[contId].Phone}"/>
+              </apex:column>
+          <apex:column headerValue="Is Primary Contact">
+         <apex:inputCheckbox value="{!ContactMap[contId].Is_Primary_Contact__c}" disabled="true"/>
+              </apex:column>
+          
+          <!--Link to set PrimaryContact and change the text to icon -->
+          <apex:column headerValue="Set">
+                  <apex:commandLink id="textid" value="{!IF(ContactMap[contId].Is_Primary_Contact__c == false, 'Set As Primary', '')}" action="{!setPrimary}" target="_parent"
+                         onclick="return window.confirm('Do you want to set this contact as Primary?');">
+                      
+                   <!--Using static resource of 'Icon' obtained from Salesforce -->
+                   <apex:image value="{!$Resource.Icon}" width="12" height="12" rendered="{!ContactMap[contId].Is_Primary_Contact__c}"/>
+            <!-- Passing Id to extension method -->          
+           <apex:param value="{!ContactMap[contId].id}" name="contactId"/>
+           </apex:commandLink>
+      </apex:column>
+      </apex:pageBlockTable>
+   </apex:pageBlock>
+        
+         </apex:form>
+    </body>
+</apex:page>
