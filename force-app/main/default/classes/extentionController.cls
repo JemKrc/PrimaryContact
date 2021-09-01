@@ -74,7 +74,7 @@ public String searchText{get
         } 
         
         //Redirect page configuration.
-        PageReference tempPage = new PageReference('/apex/PrimaryContact?id='+acct.Id);//ApexPages.currentPage();            
+        PageReference tempPage = new PageReference('/apex/PrimaryContact?id='+acct.Id);            
         tempPage.setRedirect(true);
         return tempPage;
     }
