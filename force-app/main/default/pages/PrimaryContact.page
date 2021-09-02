@@ -1,4 +1,4 @@
-<apex:page standardController="Account" extensions="extentionController">
+<apex:page standardController="Account" extensions="ExtentionController">
    
     <head>
       <meta charset="utf-8" />
@@ -32,34 +32,35 @@
              <apex:commandButton value="Search" action="{!search}"/>
          </apex:pageBlock>
  
-     <!--Related Contacts Block displaying 2000+ records -->
+     <!--Related Contacts Block displaying 990 records -->
 	<apex:pageBlock title="Related Contact Records" id="tableValue">
-      <apex:pageBlockTable value="{!ContactMap}" var="contId">
-		<apex:column headerValue="Last Name">
-         <apex:outputText value="{!ContactMap[contId].LastName}"/>
+        <apex:pageBlockTable value="{!extContacts}" var="contId">
+            <apex:column headerValue="Last Name">
+             <apex:outputText value="{!contId.LastName}"/>
+              </apex:column>
+              <apex:column headerValue="Title">
+             <apex:outputText value="{!contId.Title}"/>
+                </apex:column>
+              <apex:column headerValue="Phone">
+             <apex:outputText value="{!contId.Phone}"/>
+                  </apex:column>
+              <apex:column headerValue="Is Primary Contact">
+             <apex:inputCheckbox value="{!contId.Is_Primary_Contact__c}" disabled="true"/>
+                  </apex:column>
+              
+              <!--Link to set PrimaryContact and change the text to icon -->
+              <apex:column headerValue="Set">
+                      <apex:commandLink id="textid" value="{!IF(contId.Is_Primary_Contact__c == false, 'Set As Primary', '')}" action="{!setPrimary}" target="_parent"
+                             onclick="return window.confirm('Do you want to set this contact as Primary?');">
+                          
+                       <!--Using static resource of 'Icon' obtained from Salesforce -->
+                       <apex:image value="{!$Resource.Icon}" width="12" height="12" rendered="{!contId.Is_Primary_Contact__c}"/>
+               
+                <!-- Passing Id to extension method -->          
+               <apex:param value="{!contId.id}" name="contactId"/>
+               </apex:commandLink>
           </apex:column>
-          <apex:column headerValue="Title">
-         <apex:outputText value="{!ContactMap[contId].Title}"/>
-            </apex:column>
-          <apex:column headerValue="Phone">
-         <apex:outputText value="{!ContactMap[contId].Phone}"/>
-              </apex:column>
-          <apex:column headerValue="Is Primary Contact">
-         <apex:inputCheckbox value="{!ContactMap[contId].Is_Primary_Contact__c}" disabled="true"/>
-              </apex:column>
-          
-          <!--Link to set PrimaryContact and change the text to icon -->
-          <apex:column headerValue="Set">
-                  <apex:commandLink id="textid" value="{!IF(ContactMap[contId].Is_Primary_Contact__c == false, 'Set As Primary', '')}" action="{!setPrimary}" target="_parent"
-                         onclick="return window.confirm('Do you want to set this contact as Primary?');">
-                      
-                   <!--Using static resource of 'Icon' obtained from Salesforce -->
-                   <apex:image value="{!$Resource.Icon}" width="12" height="12" rendered="{!ContactMap[contId].Is_Primary_Contact__c}"/>
-            <!-- Passing Id to extension method -->          
-           <apex:param value="{!ContactMap[contId].id}" name="contactId"/>
-           </apex:commandLink>
-      </apex:column>
-      </apex:pageBlockTable>
+          </apex:pageBlockTable>
    </apex:pageBlock>
         
          </apex:form>

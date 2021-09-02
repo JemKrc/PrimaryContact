@@ -1,6 +1,9 @@
 @isTest
 private class ExtensionControllerTest {
     public String searchText {get;set;}
+    private static Account refAcct;
+    private static Contact refCon;
+    private static Account failAct;
 	private static void initData(String actionToDo) {
         switch on actionToDo {
             when 'testMethodNameSuccess' {
@@ -22,6 +25,8 @@ private class ExtensionControllerTest {
                 contacts.add(testCon4);
                 insert contacts;
                
+                refAcct = acct;
+                refCon = testCon2;
             }
          
             when 'testMethodNameFailure' {
@@ -29,6 +34,8 @@ private class ExtensionControllerTest {
                 //Dummy account to use for failing test
                 Account testacct = new Account(Name='FailAcc');
                 insert testacct;
+
+                failAct = testacct;
 			}
         }
 }
@@ -38,9 +45,7 @@ private class ExtensionControllerTest {
     private static void testsetPrimarySuccess() {
         initData('testMethodNameSuccess');
         
-         Account refAcct = [SELECT Id,Name FROM Account WHERE Name = 'TestAccount'];
-         Contact refCon = [SELECT Id, LastName, Is_Primary_Contact__c FROM Contact WHERE LastName = 'TestCon2'];
-        
+         
                //call the current page for testing and attaching values
                PageReference testPage = Page.PrimaryContact; 
                Test.setCurrentPage(testPage);
@@ -52,18 +57,18 @@ private class ExtensionControllerTest {
         ApexPages.StandardController accountController = new ApexPages.StandardController(refAcct);
 
         //Get the Standard Controller and pass it to controller extension
-        extentionController ext = new extentionController(accountController);
+        ExtentionController ext = new ExtentionController(accountController);
         
         Test.startTest();
         //Testing
-        PageReference ref = ext.setPrimary();
+        ext.setPrimary();
         
         Test.stopTest();
         
         //Assertions
         Contact assertCon = [Select LastName, Is_Primary_Contact__c FROM Contact WHERE LastName='TestCon2'];
         System.assert(assertCon.Is_Primary_Contact__c == true);
-        System.assertEquals('/apex/PrimaryContact?id='+refAcct.Id, ref.getUrl());
+        
 
     }
     
@@ -72,28 +77,26 @@ private class ExtensionControllerTest {
     private static void testsearchSuccess()
     {   
         initData('testMethodNameSuccess');
-        Account searchAcc = [SELECT Id, Name FROM Account Where Name = 'TestAccount'];
+        
         
         List<Contact> Cons = [Select Id, LastName, Is_Primary_Contact__c FROM Contact WHERE LastName Like '%TestCon%'];
-        Map<Integer, Contact> ContMap = new Map<Integer, Contact>();
-                for(Integer index = 0 ; index < Cons.size(); index++) {
-                    ContMap.put(index, Cons[index]);}
+        
          
-        String sText = 'TestC';
+        String sText = 'TestCon';
         
         PageReference searchPage = Page.PrimaryContact; 
                Test.setCurrentPage(searchPage);
-               searchPage.getParameters().put('Id', String.valueOf(searchAcc.Id));
+               searchPage.getParameters().put('Id', String.valueOf(refAcct.Id));
                searchPage.getParameters().put('searchText',sText);
                
         //create a standard controller and pass the dummy account controller
-        ApexPages.StandardController accountController = new ApexPages.StandardController(searchAcc);
+        ApexPages.StandardController accountController = new ApexPages.StandardController(refAcct);
 
         //Get the Standard Controller and pass it to controller extension
-        extentionController ext = new extentionController(accountController);
+        ExtentionController ext = new ExtentionController(accountController);
         
         //setting ContactMap to dummy values
-        ext.ContactMap = ContMap;
+        ext.extContacts = Cons;
         
         //Test
         Test.startTest();
@@ -103,14 +106,14 @@ private class ExtensionControllerTest {
         Test.stopTest();
         
         //Assert
-        System.assertEquals(null, ref);
+        System.assertEquals(4,ext.extContacts.size());
     }
     
     //Test that will fail
      @isTest
     private static void testMethodNameFailure() {
         initData('testMethodNameFailure');
-        Account failAct = [SELECT Id, Name FROM Account WHERE Name = 'FailAcc'];
+        
         
         String sText = 'TestC';        
         PageReference failPage = Page.PrimaryContact; 
@@ -122,10 +125,10 @@ private class ExtensionControllerTest {
         ApexPages.StandardController accountController = new ApexPages.StandardController(failAct);
 
         //Get the Standard Controller and pass it to controller extension
-        extentionController ext = new extentionController(accountController);
+        ExtentionController ext = new ExtentionController(accountController);
         
         //Setting ContactMap to null
-        ext.ContactMap = null;
+        ext.extContacts = null;
         
         //Feeding with null Map<Integer, Contact>
         Test.startTest();
@@ -135,8 +138,7 @@ private class ExtensionControllerTest {
         Test.stopTest();
         
         //Assertion
-        System.assertEquals('/apex/PrimaryContact?id='+failAct.Id, ext.search().getUrl());
-
+        System.assertEquals(4, ext.extContacts.size());
     }
     
 }
