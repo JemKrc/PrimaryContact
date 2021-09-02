@@ -1,4 +1,4 @@
-<apex:page standardController="Account" extensions="ExtentionController">
+<apex:page standardController="Account" extensions="PrimaryContactController">
    
     <head>
       <meta charset="utf-8" />

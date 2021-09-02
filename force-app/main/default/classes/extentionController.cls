@@ -1,4 +1,4 @@
-public class ExtentionController {
+public class PrimaryContactController {
     
 private Account acct;
 public List<contact> extContacts{get;set;}
@@ -7,33 +7,36 @@ public String searchText{get
         set;}
 
 	//Constructing extension controller for standard account controller
-    public ExtentionController(ApexPages.StandardController stdCont){
+    public PrimaryContactController(ApexPages.StandardController stdCont){
         this.acct = (Account)stdCont.getRecord();
-        try{
-        this.extContacts = [SELECT id, LastName, Title, Phone, Is_Primary_Contact__c FROM contact WHERE accountid = :acct.id ORDER BY LastName LIMIT 990];
-        }
-        catch(Exception ex){
+        this.extContacts = setExtensionContact();
+       
+    }
+
+    //Method to use populate contacts in constructor and in search method
+    public List<Contact> setExtensionContact(){
+        List<Contact> setContactList = new List<Contact>();
+        try {
+           setContactList  = [SELECT id, LastName, Title, Phone, Is_Primary_Contact__c FROM contact WHERE accountid = :this.acct.id ORDER BY LastName LIMIT 990];
+        } catch(Exception ex) {
             System.debug(ex.getMessage());
         }
-       
+        return setContactList;
     }
     
     public PageReference search()
     {
         if(this.extContacts == null){
             this.extContacts = new List<Contact>();
-        }
-        else{
+        } else{
             this.extContacts.clear();
         }
         
-        //setting searchText property for query
-        String contLike = '%'+searchText+'%';
-        try{
-        this.extContacts = [Select LastName, Title, Phone, Is_Primary_Contact__c from Contact where accountid = :acct.id AND LastName like :contLike Order By LastName LIMIT 990];
-        }
-        catch(Exception ex){
-            System.debug(ex.getMessage());
+        //using searchText to filter 
+        for(Contact con: setExtensionContact()){
+            if(con.LastName.contains(this.searchText)){
+                this.extContacts.add(con);
+            }
         }
         
         return null;
@@ -49,7 +52,7 @@ public String searchText{get
         Contact primaryContact = new Contact(Id = contactId, Is_Primary_Contact__c = true);
         
         //Getting the rest of the contacts that are not primary
-        List <Contact> conts = [SELECT Id From Contact WHERE Id != :primaryContact.Id];
+        List <Contact> conts = [SELECT Id From Contact WHERE Id != :primaryContact.Id AND accountid = :this.acct.Id];
         
         //To update previously assigned primary contact to non primary
         for(Contact notPrimary: conts){
@@ -59,11 +62,9 @@ public String searchText{get
         //Combine all the contacts together
         conts.add(primaryContact);
         
-        try{
-        update conts;
-        }
-        
-        catch(Exception ex){
+        try {
+        	update conts;
+        } catch(Exception ex) {
             System.debug(ex.getMessage());
         } 
         
