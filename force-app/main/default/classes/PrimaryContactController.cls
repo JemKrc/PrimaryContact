@@ -6,6 +6,9 @@
  *************************************************************************************/
 public class PrimaryContactController {
     
+    public static final String SEARCH_FAIL_MESSAGE = 'Search Failed. Please check your logs';
+    public static final String SET_PRIMARY_CONTACT_FAIL_MESSAGE = 'Failed to set contact as primary!';
+    
     public List<contact> contacts {get;set;}
     
     public String searchText {
@@ -26,7 +29,6 @@ public class PrimaryContactController {
     public PrimaryContactController(ApexPages.StandardController stdCont) {
         this.accountRecord = (Account)stdCont.getRecord();
         this.getRelatedContacts();
-        
     }
     
     
@@ -43,7 +45,7 @@ public class PrimaryContactController {
         } catch(Exception ex) {
             System.debug(ex.getMessage());
             //use apex page messages to show something like "An error happened, please check your logs"
-            ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR,'Test'));
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, SEARCH_FAIL_MESSAGE));
         }
     }
 
@@ -65,7 +67,7 @@ public class PrimaryContactController {
             } catch(Exception ex) {
                 System.debug(ex.getMessage());
                  //use apex page messages to show something like "An error happened, please check your logs"
-                 ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR,'Failed to set contact as primary!'));
+                 ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR,SET_PRIMARY_CONTACT_FAIL_MESSAGE));
             }
         }
         
