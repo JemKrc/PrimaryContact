@@ -37,7 +37,7 @@ public class ContactTriggerHandler {
 
     for(Contact newContact : contacts) {
         //process only primary ones
-        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.size() > 0) {
+        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.get(newContact.AccountId) != null) {
             //we check if MAP contains a key with our contacts account id
             if(primaryContactPerAccount.containsKey(newContact.AccountId)) {
                 //we check if primary contact for account of our current contact is the same contact or not
@@ -52,14 +52,12 @@ public class ContactTriggerHandler {
         }
 
         // If primary contact is not assigned allow only one primary contact to be updated or inserted
-        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.size() == 0) {
-            if(primaryContactPhonePerAccount.size() > 0) {
-                newContact.addError('Cant update or insert more than one primary contact');
+        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.get(newContact.AccountId) == null) {
+            if(primaryContactPhonePerAccount.get(newContact.AccountId) != null) {
+                newContact.addError('Can\'t update or insert more than one primary contact');
             } else {
                 primaryContactPhonePerAccount.put(newContact.AccountId, newContact.Phone);
-            } 
-            
-                    
+            }                   
        }
      }
 
@@ -67,7 +65,6 @@ public class ContactTriggerHandler {
      if(primaryContactPhonePerAccount.size() > 0) {
         updatePrimaryContactPhone_Future(primaryContactPhonePerAccount);
      }
-
 }
 
     //Async primary contact phone update
