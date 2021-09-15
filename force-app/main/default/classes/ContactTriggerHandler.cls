@@ -37,7 +37,7 @@ public class ContactTriggerHandler {
 
     for(Contact newContact : contacts) {
         //process only primary ones
-        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.get(newContact.AccountId) != null) {
+        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.containsKey(newContact.AccountId)) {
             //we check if MAP contains a key with our contacts account id
             if(primaryContactPerAccount.containsKey(newContact.AccountId)) {
                 //we check if primary contact for account of our current contact is the same contact or not
@@ -52,8 +52,8 @@ public class ContactTriggerHandler {
         }
 
         // If primary contact is not assigned allow only one primary contact to be updated or inserted
-        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.get(newContact.AccountId) == null) {
-            if(primaryContactPhonePerAccount.get(newContact.AccountId) != null) {
+        if(newContact.Is_Primary_Contact__c && !primaryContactPerAccount.containsKey(newContact.AccountId)) {
+            if(primaryContactPhonePerAccount.containsKey(newContact.AccountId)) {
                 newContact.addError('Can\'t update or insert more than one primary contact');
             } else {
                 primaryContactPhonePerAccount.put(newContact.AccountId, newContact.Phone);
@@ -63,13 +63,13 @@ public class ContactTriggerHandler {
 
      //To avoid duplication
      if(primaryContactPhonePerAccount.size() > 0) {
-        updatePrimaryContactPhone_Future(primaryContactPhonePerAccount);
+        updatePrimaryContactPhone(primaryContactPhonePerAccount);
      }
 }
 
     //Async primary contact phone update
     @future
-    public static void updatePrimaryContactPhone_Future(Map<Id, String> primaryContactPhone) {
+    public static void updatePrimaryContactPhone(Map<Id, String> primaryContactPhone) {
 
         try { 
             //Get all the contacts that are not primary
