@@ -35,33 +35,51 @@ public class ContactTriggerHandler {
         primaryContactPerAccount.put(existingPrimaryContact.AccountId, existingPrimaryContact);
     }
 
-    for(Contact newContact : contacts) {
-        //process only primary ones
-        if(newContact.Is_Primary_Contact__c && primaryContactPerAccount.containsKey(newContact.AccountId)) {
-            //we check if MAP contains a key with our contacts account id
-            if(primaryContactPerAccount.containsKey(newContact.AccountId)) {
-                //we check if primary contact for account of our current contact is the same contact or not
-                if(newContact.Id != primaryContactPerAccount.get(newContact.AccountId).Id) {
-                    newContact.addError('Account already has a Primary Contact');
-                } 
-                if(newContact.Id == primaryContactPerAccount.get(newContact.AccountId).Id 
-                   && newContact.Phone != oldContacts.get(newContact.Id).Phone) {
-                       primaryContactPhonePerAccount.put(newContact.AccountId, newContact.Phone);
-                   }
-            } 
-        }
-
-        // If primary contact is not assigned allow only one primary contact to be updated or inserted
-        if(newContact.Is_Primary_Contact__c && !primaryContactPerAccount.containsKey(newContact.AccountId)) {
-            if(primaryContactPhonePerAccount.containsKey(newContact.AccountId)) {
-                newContact.addError('Can\'t update or insert more than one primary contact');
+    //When insert will use this
+    if(oldContacts == null) {
+        for(Contact newInsert: contacts) {
+            //if account already has a primary contact
+            if(primaryContactPerAccount.containsKey(newInsert.AccountId)) {
+                newInsert.addError('Account Already Has A Primary Contact.');
             } else {
-                primaryContactPhonePerAccount.put(newContact.AccountId, newContact.Phone);
-            }                   
-       }
-     }
+                //if this is the first primary contact add it to the maps - avoids multiple inserts at once
+                primaryContactPerAccount.put(newInsert.AccountId, newInsert);
+                primaryContactPhonePerAccount.put(newInsert.AccountId, newInsert.Phone);
+            }
+        }
+    }
 
-     //To avoid duplication
+    //if it is update will use this
+    if(oldContacts != null) {
+    for(Contact newContact : contacts) {
+        // To see updating an existing contact
+        Contact oldContact = oldContacts.get(newContact.Id);
+        if(oldContact != null) {
+            if(newContact.Is_Primary_Contact__c) {
+                //Is there already a primary contact
+                if(primaryContactPerAccount.containsKey(newContact.AccountId)) {
+                    //If so is it same with our contact
+                    if(newContact.Id != primaryContactPerAccount.get(newContact.AccountId).Id) {
+                        newContact.addError('Account Already Has A Primary Contact.');
+                    }
+                    //If it is same contact we check only for the phone number change
+                    if(newContact.Id == primaryContactPerAccount.get(newContact.AccountId).Id 
+                    && newContact.Phone != oldContact.Phone) {
+                        primaryContactPhonePerAccount.put(newContact.AccountId, newContact.Phone);
+                    }
+                  //If we clear primary contact first and update with this contact  
+                } else {
+                    primaryContactPerAccount.put(newContact.AccountId, newContact);
+                    primaryContactPhonePerAccount.put(newContact.AccountId, newContact.Phone);
+                }   
+            }                
+        } 
+    
+    }
+}
+
+
+    //To avoid duplication
      if(primaryContactPhonePerAccount.size() > 0) {
         updatePrimaryContactPhone(primaryContactPhonePerAccount);
      }
@@ -79,7 +97,7 @@ public class ContactTriggerHandler {
                                                 AND Is_Primary_Contact__c = false];
 
             //Set all non-primary contacts Primary Contact Phone
-            for(Contact nonPrimary : nonPrimaryContacts){
+            for(Contact nonPrimary : nonPrimaryContacts) {
                 nonPrimary.Primary_Contact_Phone__c = primaryContactPhone.get(nonPrimary.AccountId);
             }
 
@@ -92,4 +110,3 @@ public class ContactTriggerHandler {
     }
 
 }
-
