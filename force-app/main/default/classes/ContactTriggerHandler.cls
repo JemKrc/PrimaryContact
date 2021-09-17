@@ -38,6 +38,7 @@ public class ContactTriggerHandler {
     //When insert will use this
     if(oldContacts == null) {
         for(Contact newInsert: contacts) {
+            if(newInsert.Is_Primary_Contact__c) { 
             //if account already has a primary contact
             if(primaryContactPerAccount.containsKey(newInsert.AccountId)) {
                 newInsert.addError('Account Already Has A Primary Contact.');
@@ -46,6 +47,7 @@ public class ContactTriggerHandler {
                 primaryContactPerAccount.put(newInsert.AccountId, newInsert);
                 primaryContactPhonePerAccount.put(newInsert.AccountId, newInsert.Phone);
             }
+          }
         }
     }
 
