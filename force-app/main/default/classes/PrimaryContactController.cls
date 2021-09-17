@@ -6,7 +6,7 @@
  *************************************************************************************/
 public class PrimaryContactController {
     
-    public static final String SEARCH_FAIL_MESSAGE = 'Search Failed. Please check your logs';
+    public static final String SEARCH_FAIL_MESSAGE = 'Search Failed. Please check spelling';
     public static final String SET_PRIMARY_CONTACT_FAIL_MESSAGE = 'Failed to set contact as primary!';
     
     public List<contact> contacts {get;set;}
@@ -52,17 +52,23 @@ public class PrimaryContactController {
     
     public void setPrimary() {
         if(this.primaryContactId != NULL) {
-            //Getting the rest of the contacts that are not primary
+          //Getting the rest of the contacts that are not primary
             try {
-                List<Contact> allRelatedContacts = [SELECT Id 
+                List<Contact> allRelatedContacts = [SELECT Id
                     FROM Contact 
-                    WHERE AccountId = :this.accountRecord.Id];
+                    WHERE AccountId = :this.accountRecord.Id  AND Id <> :this.primaryContactId];
                 for(Contact relatedContact: allRelatedContacts) {
-
-                    relatedContact.Is_Primary_Contact__c = (this.primaryContactId == relatedContact.Id);
+                    relatedContact.Is_Primary_Contact__c = false;
                 }
+ 
                 
+                
+                //allRelatedContacts.add(new Contact(Id = this.primaryContactId, Is_Primary_contact__c = true));
                 update allRelatedContacts;
+                update new Contact(Id = this.primaryContactId, Is_Primary_Contact__c = true);
+                
+                
+                
                 this.getRelatedContacts();
             } catch(Exception ex) {
                 System.debug(ex.getMessage());
