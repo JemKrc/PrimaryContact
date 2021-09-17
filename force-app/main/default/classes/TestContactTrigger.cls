@@ -23,6 +23,9 @@ private class TestContactTrigger {
     private static Account accTwo;
     private static Contact conOne;
     private static Contact conTwo;
+    //fields for updatePrimaryContactPhone
+    private static List<Contact> contsListForFuture;
+    private static Account accForFuture;
 
 
     private static void initData(String actionToDo) {
@@ -147,6 +150,22 @@ private class TestContactTrigger {
       
 
             }
+            when 'testUpdatePrimaryContactPhone' {
+                //Dummy account for test
+                Account futureAcc = new Account(Name='FutureMethodAcc');
+                insert futureAcc;
+                //related contacts for test
+                List<Contact> contactsForAsync = new List<Contact>{
+                    new Contact(LastName = 'TestCont7',Is_Primary_Contact__c = false, AccountId = futureAcc.Id),
+                	new Contact(LastName = 'TestCont8', Is_Primary_Contact__c = false, AccountId = futureAcc.Id),
+                    new Contact(LastName = 'TestCont9', Is_Primary_Contact__c = false, AccountId = futureAcc.Id),
+                    new Contact(LastName = 'TestCont10', Is_Primary_Contact__c = true, Phone = '590', AccountId = futureAcc.Id)};
+                insert contactsForAsync;
+                
+                accForFuture = futureAcc;
+                contsListForFuture = contactsForAsync;
+
+            }
         }
     }
 
@@ -208,19 +227,28 @@ private class TestContactTrigger {
         System.assertEquals('345-8439', assertCon.Primary_Contact_Phone__c);
     }
 
-    // This test is to fail. Can't insert if there is already primary contact
+    // To show if primary contact already exists
+    // can't insert a primary contact
     @isTest
     private static void testInsertWithPrimaryContact() {
         //Initialize
         initData('testInsertWithPrimaryContact');
         
+        Contact failCon = new Contact(LastName = 'FailingInsert', Is_Primary_Contact__c = true, AccountId = accWithPrimaryInsert.Id);
+
         //Start test
         Test.startTest();
         //Test
-        insert new Contact(LastName = 'FailingInsert', Is_Primary_Contact__c = true, AccountId = accWithPrimaryInsert.Id);
+        Database.SaveResult result = Database.insert(failCon, false);
+
         //Stop Test
 		Test.stopTest();
-        //Won't need assertion. Because test will fail on insertion
+        
+        //Assertions
+        System.assert(!result.isSuccess());
+        System.assert(result.getErrors().size() > 0);
+        System.assertEquals('Account Already Has A Primary Contact.',
+                             result.getErrors()[0].getMessage());
     }
 
     //If Account doesn't have a primary contact set, new inserted primary contact
@@ -276,6 +304,36 @@ private class TestContactTrigger {
         System.assertEquals('000', conAccOne.Primary_Contact_Phone__c);
         System.assertEquals('111', conAccTwo.Primary_Contact_Phone__c);
 
+    }
+    
+    //To test ContactTriggerHandlers future method
+    @isTest
+    private static void testUpdatePrimaryContactPhone() {
+        //Initialize
+        initData('testUpdatePrimaryContactPhone');
+        
+        //Create a map of primary contact phone to pass in to future method
+        Map<Id, String> primaryContactPhone = new Map<Id, String>();
+        for(Contact con :contsListForFuture) {
+            if(con.Is_Primary_Contact__c) {
+                primaryContactPhone.put(con.AccountId, con.Phone);
+              }
+         }
+        //Start Test
+        Test.startTest();
+        //test
+        ContactTriggerHandler.updatePrimaryContactPhone(primaryContactPhone);
+        //Stop test
+        Test.stopTest();
+        //Retrieve data for assertion
+        Contact conFuture = [SELECT Id, LastName, Primary_Contact_Phone__c
+                             FROM Contact 
+                             WHERE LastName = 'TestCont8'
+                             AND AccountId = :accForFuture.Id];
+        
+        //Assertion
+        System.assertEquals('590', conFuture.Primary_Contact_Phone__c);     
+        
     }
    
 }
