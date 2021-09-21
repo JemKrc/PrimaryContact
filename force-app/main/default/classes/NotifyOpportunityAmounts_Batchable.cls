@@ -6,44 +6,53 @@
  *************************************************************************************/
 
 
-public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sObject> {
+public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sObject>, Database.Stateful {
+    
+    public Integer recordsProcessed = 0;
 
-    //Map of primary contacts to account opportunities
-    Map<Contact, Map<String, Double>> contOppStageAmount = new Map<Contact, Map<String,Double>>();
-    //Query to obtain accounts with primary contact, related primary contacts
-    //and related opportunities
+    //Map of AccountIds to  opportunities
+    Map<Id, Map<String, Double>> accOppStageAmount = new Map<Id, Map<String,Double>>();
+    //Query to obtain Opportunities
     public Database.QueryLocator start(Database.BatchableContext bc) {
-        return Database.getQueryLocator([SELECT Id, Name,
-                                       (SELECT Id, Name, LastName, Is_Primary_Contact__c
-                                        FROM Contacts WHERE Is_Primary_Contact__c = true),
-                                       (SELECT Id, Name, Amount, StageName FROM Opportunities) FROM Account
-                                       	WHERE Id IN 
-                                       (SELECT AccountId 
-                                        FROM Contact 
-                                        WHERE Is_Primary_Contact__c = true)]);
-        
+        return Database.getQueryLocator([SELECT Id, Name, AccountId, LastModifiedDate, CreatedDate, Amount, StageName 
+                                         FROM Opportunity WHERE StageName IN ('Closed Won', 'Closed Lost', 'Open') 
+                                         AND (LastModifiedDate >= This_Month OR CreatedDate >= This_Month)]);
     }
     
-    public void execute(Database.BatchableContext bc, List<Account> scope) {
-        // Map of opportunities' stagename to amount of each account
+    public void execute(Database.BatchableContext bc, List<Opportunity> scope) {
+        // Map of opportunities' stagename to amount 
         Map<String, Double> oppStageAmount = new Map<String, Double>();
-        for(Account acc :scope) {
-            for(Opportunity oppty :acc.Opportunities) {
-                oppStageAmount.put(oppty.StageName, oppty.Amount);
-            }
-            //Adding opportunity map to primary contact 
-            contOppStageAmount.put(acc.contacts, oppStageAmount);
+        for(Opportunity oppty :scope) {
+            oppStageAmount.put(oppty.StageName, oppty.Amount);
+            //Adding new map to bigger map
+            accOppStageAmount.put(oppty.AccountId, oppStageAmount);
+            recordsProcessed = recordsProcessed + 1;
         }
+            
     }
     
     public void finish(Database.BatchableContext bc) {
-        // set up email proprerties
+ 
+        System.debug('recordsProcessed: ' + recordsProcessed);
+        //Constructing mail properties
         List<Messaging.SingleEmailMessage> mailsToSend = new List<Messaging.SingleEmailMessage>();
-        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage(); 
         List<String> sendTo = new List<String>();
+        
+        //Getting related primary contacts
+        List<Contact> primaryContacts = new List<Contact>();
+        try {
+            primaryContacts = [SELECT Id, LastName, Is_Primary_Contact__c, Email, AccountId, Account.Name 
+                                         FROM Contact WHERE Is_Primary_Contact__c = true 
+                                         AND AccountId IN :accOppStageAmount.keySet()];
+        } catch(Exception ex) {
+            System.debug(ex.getMessage());
+        }
 
-        //for each primary contact construct email
-        for(Contact con :contOppStageAmount.keySet()){
+   
+        System.debug('primaryContacts: ' + primaryContacts);
+        //Foreach primary contact send email
+        for(Contact con :primaryContacts){
             
             sendTo.add(con.Email);
             mail.setToAddresses(sendTo);
@@ -52,10 +61,10 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
             String table = '';
             String body = '';
             
-            //Set up html table for email - foreach opportunity stage name
+            //Start table
             table = '<table border="1" style="border-collapse: collapse"><tr><th>Account</th><th>Stage</th><th>Amount</th></tr>';
-            for(String opp :contOppStageAmount.get(con).keySet()){
-                table += '<tr><td>' + con.Account.Name + '</td><td>' + opp + '</td><td>' + contOppStageAmount.get(con).get(opp) + '</td></tr>';
+            for(String opp :accOppStageAmount.get(con.AccountId).keySet()){
+                table += '<tr><td>' + con.Account.Name + '</td><td>' + opp + '</td><td>' + accOppStageAmount.get(con.AccountId).get(opp) + '</td></tr>';
                 
             }
             table += '</table>'; 
@@ -67,8 +76,9 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
              mailsToSend.add(mail);
         }
         //Send email
-        Messaging.sendEmail(mailsToSend);
-        
+        //Messaging.sendEmail(mailsToSend);
+ 
+        System.debug('Mails Sent:' + mailsToSend);
     }
 
 }
