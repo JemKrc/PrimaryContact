@@ -11,7 +11,7 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
     private static final Set<String> STAGENAMES_TO_PROCESS = new Set<String>{'Closed Won', 'Closed Lost', 'Open'};
 
     //Map of AccountIds to  opportunities
-    Map<Id, Map<String, Double>> accOppStageAmount = new Map<Id, Map<String,Double>>();
+    Map<Id, Map<String, Double>> opportunityStageAndAmountPerAccount = new Map<Id, Map<String,Double>>();
     //Query to obtain Opportunities
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([SELECT Id, Name, AccountId, LastModifiedDate, CreatedDate, Amount, StageName 
@@ -22,18 +22,18 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
     public void execute(Database.BatchableContext bc, List<Opportunity> scope) {
         for(Opportunity opportunityRecord : scope) {
             //Fetch opportunity amounts 
-            Map<String, Decimal> oppAmountForEachStage = new Map<String, Decimal>();
+            Map<String, Decimal> opportunityAmountForEachStage = new Map<String, Decimal>();
             //If it is already added
-            if(this.accOppStageAmount.containsKey(opportunityRecord.AccountId)) {
-                oppAmountForEachStage = this.accOppStageAmount.get(opportunityRecord.AccountId);
+            if(this.opportunityStageAndAmountPerAccount.containsKey(opportunityRecord.AccountId)) {
+                opportunityAmountForEachStage = this.opportunityStageAndAmountPerAccount.get(opportunityRecord.AccountId);
             }
             //If account has more than one opportunity with same stage name get total
             Decimal amount = opportunityRecord.Amount;
-            if(oppAmountForEachStage.containsKey(opportunityRecord.StageName)) {
-                amount = oppAmountForEachStage.get(opportunityRecord.StageName) + amount;
+            if(opportunityAmountForEachStage.containsKey(opportunityRecord.StageName)) {
+                amount = opportunityAmountForEachStage.get(opportunityRecord.StageName) + amount;
             }
-            oppAmountForEachStage.put(opportunityRecord.StageName, amount);
-            this.accOppStageAmount.put(opportunityRecord.AccountId, oppAmountForEachStage);
+            opportunityAmountForEachStage.put(opportunityRecord.StageName, amount);
+            this.opportunityStageAndAmountPerAccount.put(opportunityRecord.AccountId, opportunityAmountForEachStage);
         }
 
     }
@@ -50,7 +50,7 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
         try {
             primaryContacts = [SELECT Id, LastName, Is_Primary_Contact__c, Email, AccountId, Account.Name 
                                          FROM Contact WHERE Is_Primary_Contact__c = true 
-                                         AND AccountId IN :accOppStageAmount.keySet()];
+                                         AND AccountId IN :this.opportunityStageAndAmountPerAccount.keySet()];
         } catch(Exception ex) {
             System.debug(ex.getMessage());
         }
@@ -58,9 +58,9 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
    
         System.debug('primaryContacts: ' + primaryContacts);
         //Foreach primary contact send email
-        for(Contact con :primaryContacts){
+        for(Contact primaryContact :primaryContacts){
             
-            sendTo.add(con.Email);
+            sendTo.add(primaryContact.Email);
             mail.setToAddresses(sendTo);
             mail.setSenderDisplayName('My Org');
             mail.setSubject('Current Opportunities');
@@ -69,13 +69,13 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
             
             //Start table
             table = '<table border="1" style="border-collapse: collapse"><tr><th>Account</th><th>Stage</th><th>Amount</th></tr>';
-            for(String opp :accOppStageAmount.get(con.AccountId).keySet()){
-                table += '<tr><td>' + con.Account.Name + '</td><td>' + opp + '</td><td>' + accOppStageAmount.get(con.AccountId).get(opp) + '</td></tr>';
+            for(String opportunityStageName :this.opportunityStageAndAmountPerAccount.get(primaryContact.AccountId).keySet()){
+                table += '<tr><td>' + primaryContact.Account.Name + '</td><td>' + opportunityStageName + '</td><td>' + this.opportunityStageAndAmountPerAccount.get(primaryContact.AccountId).get(opportunityStageName) + '</td></tr>';
                 
             }
             table += '</table>'; 
             // Set up html body-add table for email
-            body += '<html><body>' + 'Below is a table of opportunities related to account :' + con.Account.Name + '<br><br>' + 
+            body += '<html><body>' + 'Below is a table of opportunities related to account :' + primaryContact.Account.Name + '<br><br>' + 
                 table + '<br><br>' + '</body></html>';
              mail.setHtmlBody(body);
              //collect every mail
