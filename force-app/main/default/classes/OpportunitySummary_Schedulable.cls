@@ -12,4 +12,17 @@ global class OpportunitySummary_Schedulable implements Schedulable {
         
     }
 
+         /* - Script to schedule batch class
+
+        OpportunitySummary_Schedulable schObj = new OpportunitySummary_Schedulable();
+        String dailyTenAm = '0 0 10 * * ?';
+        String friOnePm = '0 0 13 ? * 6';
+        String lastFri = '0 0 18 ? * 6L';
+        System.schedule('Daily Job', dailyTenAm, schObj);
+        System.schedule('Weekly Job', friOnePm, schObj);
+        System.schedule('Monthly Job', lastFri, schObj);
+
+
+        */
+
 }
