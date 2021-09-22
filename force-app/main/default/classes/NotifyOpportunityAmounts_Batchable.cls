@@ -7,33 +7,39 @@
 
 
 public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sObject>, Database.Stateful {
-    
-    public Integer recordsProcessed = 0;
+
+    private static final Set<String> STAGENAMES_TO_PROCESS = new Set<String>{'Closed Won', 'Closed Lost', 'Open'};
 
     //Map of AccountIds to  opportunities
     Map<Id, Map<String, Double>> accOppStageAmount = new Map<Id, Map<String,Double>>();
     //Query to obtain Opportunities
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([SELECT Id, Name, AccountId, LastModifiedDate, CreatedDate, Amount, StageName 
-                                         FROM Opportunity WHERE StageName IN ('Closed Won', 'Closed Lost', 'Open') 
+                                         FROM Opportunity WHERE StageName IN :STAGENAMES_TO_PROCESS 
                                          AND (LastModifiedDate >= This_Month OR CreatedDate >= This_Month)]);
     }
     
     public void execute(Database.BatchableContext bc, List<Opportunity> scope) {
-        // Map of opportunities' stagename to amount 
-        Map<String, Double> oppStageAmount = new Map<String, Double>();
-        for(Opportunity oppty :scope) {
-            oppStageAmount.put(oppty.StageName, oppty.Amount);
-            //Adding new map to bigger map
-            accOppStageAmount.put(oppty.AccountId, oppStageAmount);
-            recordsProcessed = recordsProcessed + 1;
+        for(Opportunity opportunityRecord : scope) {
+            //Fetch opportunity amounts 
+            Map<String, Decimal> oppAmountForEachStage = new Map<String, Decimal>();
+            //If it is already added
+            if(this.accOppStageAmount.containsKey(opportunityRecord.AccountId)) {
+                oppAmountForEachStage = this.accOppStageAmount.get(opportunityRecord.AccountId);
+            }
+            //If account has more than one opportunity with same stage name get total
+            Decimal amount = opportunityRecord.Amount;
+            if(oppAmountForEachStage.containsKey(opportunityRecord.StageName)) {
+                amount = oppAmountForEachStage.get(opportunityRecord.StageName) + amount;
+            }
+            oppAmountForEachStage.put(opportunityRecord.StageName, amount);
+            this.accOppStageAmount.put(opportunityRecord.AccountId, oppAmountForEachStage);
         }
-            
+
     }
     
     public void finish(Database.BatchableContext bc) {
  
-        System.debug('recordsProcessed: ' + recordsProcessed);
         //Constructing mail properties
         List<Messaging.SingleEmailMessage> mailsToSend = new List<Messaging.SingleEmailMessage>();
         Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage(); 
