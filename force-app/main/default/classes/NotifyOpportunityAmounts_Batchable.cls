@@ -12,6 +12,9 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
 
     //Map of AccountIds to  opportunities
     Map<Id, Map<String, Double>> opportunityStageAndAmountPerAccount = new Map<Id, Map<String,Double>>();
+    //Map to use in test class
+    @TestVisible
+    private static Map<Id, Map<String, Double>> mapForTest = new Map<Id, Map<String,Double>>();
     //Query to obtain Opportunities
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([SELECT Id, Name, AccountId, LastModifiedDate, CreatedDate, Amount, StageName 
@@ -35,7 +38,7 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
             opportunityAmountForEachStage.put(opportunityRecord.StageName, amount);
             this.opportunityStageAndAmountPerAccount.put(opportunityRecord.AccountId, opportunityAmountForEachStage);
         }
-
+		
     }
     
     public void finish(Database.BatchableContext bc) {
@@ -83,7 +86,8 @@ public class NotifyOpportunityAmounts_Batchable implements Database.Batchable<sO
         }
         //Send email
         //Messaging.sendEmail(mailsToSend);
- 
+        
+ 		mapForTest = this.opportunityStageAndAmountPerAccount;
         System.debug('Mails Sent:' + mailsToSend);
     }
 
