@@ -43,9 +43,15 @@ public class WeatherRestController {
         //Make the call
         Http http = new Http();
 		HttpRequest request = new HttpRequest();
-		request.setEndpoint(requestEndpoint);
-		request.setMethod('GET');
-        request.setTimeout(20000);
+            
+        try { 
+        	request.setEndpoint(requestEndpoint);
+			request.setMethod('GET');
+        	request.setTimeout(20000);
+        } catch(Exception ex) {
+            System.debug(ex.getMessage());
+        }
+		
         HttpResponse response = new HttpResponse();
         
         try {
