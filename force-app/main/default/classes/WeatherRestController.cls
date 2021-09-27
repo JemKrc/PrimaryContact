@@ -7,6 +7,11 @@
 
 public class WeatherRestController {
     public static final String CALLOUT_FAIL_MESSAGE = 'There was an Error.';
+    public static final String ACCOUNT_NOT_FOUND = 'Account Not Found.';
+    public static final String API_KEY = '&APPID=41486adbb708505907127a781ff38782';
+    public static final String END_POINT = 'http://api.openweathermap.org/data/2.5/weather?q=';
+    public static final String TEMP_UNIT = '&units=metric';
+    
     public String city {get; set;}
     public String description {get; set;}
     public String temperature {get; set;}
@@ -28,11 +33,12 @@ public class WeatherRestController {
         } catch(Exception ex) {
             System.debug(ex.getMessage());
         } 
+        
+        if(Account.Id != null) {
+  
         //Set endpoint params
         String accountCity = account.BillingCity;
-        String apiKey = '41486adbb708505907127a781ff38782';
-
-        String requestEndpoint = 'http://api.openweathermap.org/data/2.5/weather?q='+accountCity+'&units=metric&APPID='+apiKey;
+        String requestEndpoint = END_POINT + accountCity + TEMP_UNIT + API_KEY;
 
         //Make the call
         Http http = new Http();
@@ -61,6 +67,8 @@ public class WeatherRestController {
         } else {
             ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, CALLOUT_FAIL_MESSAGE));
         }
-    }
-
+        } else {
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, ACCOUNT_NOT_FOUND));
+        }
+   }
 }
