@@ -1,0 +1,19 @@
+<apex:page standardController="Account" extensions="WeatherRestController" action="{!getValues}">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Weather Api</title>
+        <!-- Import the Design System Design sheet -->
+        <apex:slds />
+    </head>
+    <body>
+        <apex:messages />
+        <apex:pageBlock title="Weather in {!city}">
+            <apex:pageBlockSection columns="2">
+                <apex:outputText label="Description: " value="{!description}"/>
+                <apex:outputText label="Icon: " value="{!icon}"/>   
+                <apex:outputText label="Temperature: " value="{!temperature}" />
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </body>
+</apex:page>
