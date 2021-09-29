@@ -36,43 +36,40 @@ public class WeatherRestController {
         
         if(Account.Id != null) {
   
-        //Set endpoint params
-        String accountCity = account.BillingCity;
-        String requestEndpoint = END_POINT + accountCity + TEMP_UNIT + API_KEY;
+            //Set endpoint params
+            String accountCity = account.BillingCity;
+            String requestEndpoint = END_POINT + accountCity + TEMP_UNIT + API_KEY;
 
-        //Make the call
-        Http http = new Http();
-		HttpRequest request = new HttpRequest();
-            
-        try { 
-        	request.setEndpoint(requestEndpoint);
-			request.setMethod('GET');
-        	request.setTimeout(20000);
-        } catch(Exception ex) {
-            System.debug(ex.getMessage());
-        }
-		
-        HttpResponse response = new HttpResponse();
+            //Make the call
+            Http http = new Http();
+		    HttpRequest request = new HttpRequest();
+            request.setEndpoint(requestEndpoint);
+		    request.setMethod('GET');
+            request.setTimeout(20000);
         
-        try {
-            response = http.send(request);
-        } catch(System.CalloutException ex) {
-            System.debug(ex.getMessage());
-        }
+		
+            HttpResponse response = new HttpResponse();
+        
+            try {
+                response = http.send(request);
+            } catch(System.CalloutException ex) {
+                System.debug(ex.getMessage());
+            }
 		
      
-        if (response.getStatusCode() == 200) {
-            //Get response onto Wrapper instance
-            this.wrapper = (WeatherRestWrapper)Json.deserialize(response.getBody(), WeatherRestWrapper.class);
-            //Set values
-            this.city = wrapper.name;
-            this.temperature = String.valueOf(wrapper.main.temp);
-            this.description = wrapper.weather[0].description;
-            this.icon = wrapper.weather[0].icon;
+            if (response.getStatusCode() == 200) {
+                //Get response onto Wrapper instance
+                this.wrapper = (WeatherRestWrapper)Json.deserialize(response.getBody(), WeatherRestWrapper.class);
+                //Set values
+                this.city = wrapper.name;
+                this.temperature = String.valueOf(wrapper.main.temp);
+                this.description = wrapper.weather[0].description;
+                this.icon = wrapper.weather[0].icon;
          
-        } else {
-            ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, CALLOUT_FAIL_MESSAGE));
-        }
+            } else {
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, CALLOUT_FAIL_MESSAGE));
+            }
+
         } else {
             ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.ERROR, ACCOUNT_NOT_FOUND));
         }
